@@ -1,3 +1,7 @@
+"""LOB\u91CD\u6784\u6a21\u578b\u7684\u8bad\u7ec3\u811a\u672c\u3002
+
+\u8be5\u811a\u672c\u53ef\u4ee5\u5b9a\u4e49\u8f93\u5165\u53c2\u6570\uff0c\u52a0\u8f7d\u6570\u636e\u5e93\uff0c\u521d\u59cb\u5316\u6a21\u578b\uff0c\u5e76\u5b8c\u6210\u8bad\u7ec3\u3001\u9a8c\u8bc1\u548c\u6d4b\u8bd5\u8fc7\u7a0b\u3002
+"""
 import numpy as np
 import pandas as pd
 import sys
@@ -37,6 +41,7 @@ def define_args():
     return parser.parse_args()
 
 def main(dataset='MSFT',side='bid',main_module='ode',HC=False,seed=0,gpu=0):
+    """\u5b9e\u969b\u8fdb\u5165\u70b9\uff0c\u6307\u5b9a\u6570\u636e\u96c6\u548c\u6a21\u578b\u8bbe\u7f6e\u5bf9\u6a21\u578b\u8fdb\u884c\u8bad\u7ec3\u3002"""
 
     args = define_args()
     args.dataset = dataset
@@ -79,17 +84,22 @@ def main(dataset='MSFT',side='bid',main_module='ode',HC=False,seed=0,gpu=0):
     train_loss = 0
     train_samples = 0
     val_loss_list = []
+    # \u4f7f\u7528RMSprop\u4f5c\u4e3a\u4f18\u5316\u5668
     optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
+    # \u5faa\u73af\u591a\u500d\u6570\u636e\u6279\uff0c\u5b8c\u6210\u591a\u8f6e\u8bad\u7ec3
     for itr in range(1, num_batches * (args.niter+1)):
-        optimizer.zero_grad()
+        optimizer.zero_grad()  # \u6bcf\u6b21\u5fa9\u4f53\u6d88\u9664\u7d2f\u79ef\u7684\u6839\u63d0
         batch_dict = utils.get_next_batch(data_obj["train_dataloader"])
+        # \u8fd0\u884c\u6a21\u578b\uff0c\u8ba1\u7b97\u4e00\u6279\u6570\u636e\u7684\u635f\u5931
         train_res = model.compute_all_losses(batch_dict, args.side, args.time)
-        train_res["l1_loss"].backward()
-        optimizer.step()
+        train_res["l1_loss"].backward()  # \u56de\u4f20\u8ba1\u7b97\u6bcf\u4e2a\u53d8\u91cf\u7684\u5e73\u5747\u6839\u63d0
+        optimizer.step()  # \u66f4\u65b0\u6a21\u578b\u53c2\u6570
         train_loss = train_loss + train_res['l1_loss']*len(batch_dict['data'])
         train_samples = train_samples + len(batch_dict['data'])
         n_iters_to_val = 1
+        # \u6bcf\u4e00\u8f6e\u8bad\u7ec3\u540e\u8fdb\u884c\u9a8c\u8bc1
         if itr % (n_iters_to_val * num_batches) == 0:
+            # \u9a8c\u8bc1\u968f\u673a\u62bd\u53d6\u7684\u6a21\u578b\uff0c\u4e0d\u9700\u8981\u5012\u50a8\u6d1e
             with torch.no_grad():
                 val_res = utils.compute_loss_all_batches(model, data_obj["val_dataloader"],
                                                           n_batches=data_obj["n_val_batches"],side = args.side,time= args.time)
@@ -102,6 +112,7 @@ def main(dataset='MSFT',side='bid',main_module='ode',HC=False,seed=0,gpu=0):
                 train_samples = 0
                 val_loss_list.append(val_res['l1_loss'])
 
+                # \u5982\u679c\u9a8c\u8bc1\u96c6\u635f\u5931\u6700\u4f4e\uff0c\u4fdd\u5b58\u5f53\u524d\u6a21\u578b
                 if val_loss_list[-1] == min(val_loss_list):
                     torch.save({'state_dict': model.state_dict(),}, ckpt_path)
 
@@ -114,6 +125,7 @@ def main(dataset='MSFT',side='bid',main_module='ode',HC=False,seed=0,gpu=0):
         print('Final Val l1 Loss {:.6f}'.format(val_res["l1_loss"].detach()))
         test_res = utils.compute_loss_all_batches(model, data_obj["test_dataloader"],
                                                   n_batches=data_obj["n_test_batches"],side = args.side,time= args.time)
+        # \u6700\u7ec8\u5728\u6d4b\u8bd5\u96c6\u4e0a\u8ba1\u7b97\u5f97\u5230\u7684\u635f\u5931
         message = 'Final Test l1 Loss {:.6f}\n'.format(test_res["l1_loss"].detach())
         logger.write(message)
         print('Final Test l1 Loss {:.6f}'.format(test_res["l1_loss"].detach()))

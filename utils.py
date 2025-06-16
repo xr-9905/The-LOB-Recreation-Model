@@ -1,3 +1,4 @@
+"""\u6570\u636e\u52a0\u8f7d\u3001\u8bad\u7ec3\u548c\u6d4b\u8bd5\u7684\u5de5\u5177\u51fd\u6570\u96c6"""
 import numpy as np
 import pandas as pd
 import torch
@@ -18,18 +19,7 @@ def get_device(tensor):
 
 def variable_time_collate_fn(batch, device=torch.device("cuda"), data_type="train",
                              data_min=None, data_max=None):
-    """
-    Expects a batch of time series data in the form of (record_id, tt, vals, mask, labels) where
-        - record_id is a patient id
-        - tt is a 1-dimensional tensor containing T time values of observations.
-        - vals is a (T, D) tensor containing observed values for D variables.
-        - mask is a (T, D) tensor containing 1 where values were observed and 0 otherwise.
-        - labels is a list of labels for the current patient, if labels are available. Otherwise None.
-    Returns:
-        combined_tt: The union of all time observations.
-        combined_vals: (M, T, D) tensor containing the observed values.
-        combined_mask: (M, T, D) tensor containing 1 where values were observed and 0 otherwise.
-    """
+    """\u5c06\u591a\u6761\u65f6\u95f4\u5e8f\u5217\u6570\u636e\u7ec4\u5408\u6210\u7b2c\u4e00\u4e2a\u4f7f\u7528\u7684\u8f93\u5165"""
     D = batch[0][2].shape[1]
     T = batch[0][2].shape[0]
     combined_tt = torch.zeros([len(batch),100]).to(device)
@@ -70,6 +60,7 @@ def variable_time_collate_fn(batch, device=torch.device("cuda"), data_type="trai
     return data_dict
 
 def parse_datasets(device,batch_size,dataset_train,dataset_val,dataset_test,train_mode = True):
+    """\u751f\u6210\u7528\u4e8e\u8bad\u7ec3\u548c\u6d4b\u8bd5\u7684DataLoader"""
 
     # Shuffle and split
     if train_mode:
@@ -115,9 +106,7 @@ def parse_datasets(device,batch_size,dataset_train,dataset_val,dataset_test,trai
     return data_objects
 
 def inf_generator(iterable):
-    """Allows training with DataLoaders in a single infinite loop:
-       for i, (x, y) in enumerate(inf_generator(train_loader)):
-    """
+    """\u4f7f\u5f97DataLoader\u80fd\u5728\u65e0\u9650\u7684\u5faa\u73af\u4e2d\u4f7f\u7528"""
     iterator = iterable.__iter__()
     while True:
         try:
@@ -145,6 +134,7 @@ def linspace_vector(start, end, n_points):
 
 
 def compute_l1_loss(label_predictions, true_label):
+    """\u8ba1\u7b97L1\u7a0b\u5ea6\u7684\u635f\u5931"""
 
     if (len(label_predictions.size()) == 3):
         label_predictions = label_predictions.unsqueeze(0)
@@ -165,6 +155,7 @@ def compute_l1_loss(label_predictions, true_label):
 
 def create_net(n_inputs, n_outputs, n_layers = 1,
     n_units = 64, nonlinear = nn.Tanh):
+    """\u6784\u9020\u7b80\u5355\u7684MLP\u7f51\u7edc"""
     layers = [nn.Linear(n_inputs, n_units)]
     for i in range(n_layers):
         layers.append(nonlinear())

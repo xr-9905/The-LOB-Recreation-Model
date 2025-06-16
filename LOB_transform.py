@@ -1,3 +1,4 @@
+"""\u7528\u4e8e\u7ed8\u5236\u91cd\u6784LOB\u70ed\u529b\u56fe\u7684\u53ef\u89c6\u5316\u5de5\u5177"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ lob.iloc[:,list(range(0,20,2))] = lob.iloc[:,list(range(0,20,2))] / 100
 lob.iloc[:,list(range(3,23,4))] = -lob.iloc[:,list(range(3,23,4))]
 col_names = np.arange(start=lob.iloc[:,18].min(),stop=lob.iloc[:,16].max(),step=1)
 df = pd.DataFrame(np.zeros((len(lob.index),len(col_names))),index=lob.index,columns=col_names)
+# \u5404\u6b21\u6316\u51fa\u4e00\u4e2aprice/volume\u5c42\u7528\u4e8e\u751f\u6210heatmap
 for i in range(10):
     selected = lob.iloc[:,[2*i,2*i+1]]
     selected.columns = ['price','volume']
@@ -30,6 +32,7 @@ for index, row in df.iterrows():
     mid_prices.append(mid_price)
 
 def map_to_color(value,v_max):
+    """\u6839\u636e\u4e70\u5356\u91cf\u8fd4\u56de\u4e0d\u540c\u989c\u8272\uff0c\u7528\u4e8e\u70ed\u529b\u56fe\u8868\u793a"""
     if value == 0:
         return 'white'
     elif value > 0:  # Ask order
@@ -42,6 +45,7 @@ def map_to_color(value,v_max):
 
 fig, ax = plt.subplots()
 
+# \u4e3a\u4e2d\u4ef7\u7684\u53d8\u5316\u753b\u51fa\u6298\u7ebf\u56fe
 sns.lineplot(pd.DataFrame({'time':list(df.index),'price':mid_prices}),x='time',y='price',linewidth=2.5, color='black',ax=ax)
 
 # Get the timestamps as numerical values for the y-axis
@@ -52,6 +56,7 @@ v_max = 250
 cax = ax.imshow(df.T, cmap='coolwarm', aspect='auto', extent=[timestamps_num.min(), timestamps_num.max(), df.columns.min(), df.columns.max()], vmin=-v_max, vmax=v_max)
 
 # Apply colors to the cells based on order volume values
+# \u6839\u636e\u5404\u4ef7\u4f4d\u548c\u65f6\u95f4\u70b9\u5728\u56fe\u4e0a\u586b\u8272
 for i in range(len(df.columns)):
     for j in range(len(df.index)):
         value = df.iat[j, i]

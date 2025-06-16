@@ -1,3 +1,6 @@
+"""\u9650\u4ef7\u8ba2\u5355\u7c3f\u91cd\u6784\u6a21\u578b\u4f7f\u7528\u7684\u795e\u7ecf\u7f51\u7edc\u7ec4\u4ef6\u3002
+
+\u5305\u542bGRU\u5f02\u5e38\u578b\u3001ODE\u7ed3\u5408\u7f16\u7801\u5668\u7b49\u6784\u4ef6\uff0c\u6784\u6210LOBRM\u7ed3\u6784\u3002"""
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint as odeint
@@ -76,6 +79,7 @@ class DiffeqSolver(nn.Module):
 		return pred_y
 
 class SelfAttention(nn.Module):
+    """\u81ea\u6ce8\u610f\u6a21\u5757\uff0c\u6458\u8981\u5e8f\u5217\u4fe1\u606f"""
     def __init__(self, input_dim, hidden_dim):
         super(SelfAttention, self).__init__()
 
@@ -102,6 +106,7 @@ class SelfAttention(nn.Module):
         return attended_values[:,-1,:]
 
 class Encoder_ODE_RNN(nn.Module):
+    """Encoder combining GRU updates with an ODE solver to model irregular time steps."""
     def __init__(self, latent_dim, input_dim, diffeq_solver, GRU_update=None,
                  n_gru_units = 64, device = torch.device("cuda")):
         super(Encoder_ODE_RNN, self).__init__()
@@ -150,6 +155,7 @@ class Encoder_ODE_RNN(nn.Module):
         return prev_y, selected_state, (time_steps[:,1:] - time_steps[:,:-1])
 
 class Simple_RNN(nn.Module):
+    """Standard GRU-based encoder used as a baseline."""
     def __init__(self, latent_dim, input_dim, n_gru_units = 64, device = torch.device("cuda")):
         super(Simple_RNN, self).__init__()
 
@@ -185,6 +191,7 @@ class Simple_RNN(nn.Module):
         return yi, latent_ys[:,:-1,:], time_intervals
 
 class RNN_decay(nn.Module):
+    """GRU variant with exponential decay between observations."""
     def __init__(self, latent_dim, input_dim, GRU_update=None,
                  n_gru_units = 64, device = torch.device("cuda"), time = False):
         super(RNN_decay, self).__init__()
@@ -240,6 +247,7 @@ class RNN_decay(nn.Module):
         return prev_y, volume_dt, time_intervals
 
 class Baseline(nn.Module):
+    """Parent class providing loss computation utilities."""
     def __init__(self, input_dim, latent_dim, device, n_labels=4):
         super(Baseline, self).__init__()
 
@@ -249,6 +257,7 @@ class Baseline(nn.Module):
         self.device = device
 
     def compute_all_losses(self, batch_dict, side, time = False):
+        """Compute L1 reconstruction loss for a minibatch."""
         info = self.get_reconstruction(batch_dict["data"], batch_dict["time_steps"], batch_dict["mask"], side, time)
 
         device = utils.get_device(batch_dict["data"])
@@ -270,6 +279,7 @@ class Baseline(nn.Module):
 
 
 class GRU_unit_(nn.Module):
+    """GRU cell returning both hidden state and a target state for decay variant."""
     def __init__(self, latent_dim, input_dim,
                  update_gate=None,
                  reset_gate=None,
@@ -329,6 +339,7 @@ class GRU_unit_(nn.Module):
         return new_y,new_y_target  # y has the dimension of latent_dim
 
 class GRU_unit(nn.Module):
+    """Standard GRU cell that supports missing data via masking."""
     def __init__(self, latent_dim, input_dim,
                  update_gate=None,
                  reset_gate=None,
@@ -372,6 +383,7 @@ class GRU_unit(nn.Module):
         return new_y
 
 class LOBRM(Baseline):
+    """Main model combining different components to predict deep LOB volumes."""
     def __init__(self, main_module, input_dim, WS = True, HC = True, ES = True, device=torch.device("cuda"),
                  diffeq_solver=None, size_latent = 32, size_latent_WS = 16, time = False, n_gru_units=64, n_units=64, n_labels=4):
 
@@ -433,6 +445,7 @@ class LOBRM(Baseline):
             utils.init_network_weights(self.rnn_cell_base)
 
     def get_reconstruction(self, data, time_steps, mask, side, time = False):
+        """Forward pass through the model to reconstruct volume increments."""
 
         n_traj, n_tp, n_dims = data.size()
         data_and_mask = torch.cat([data, mask], -1)
@@ -487,8 +500,8 @@ class LOBRM(Baseline):
             raise Exception("wrong combination of modules")
 
         return extra_info
-
 def rnn_time(inputs, embedding, cell, delta_ts = None, mask = None, n_steps=0, masked_update = True):
+    """Run an RNN cell over input sequence while handling missing values."""
     if n_steps == 0:
         n_steps = inputs.size(1)
     n_dim = inputs.size(2)
